@@ -4,7 +4,6 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
-	"log"
 	"os"
 	"os/exec"
 	"strings"
@@ -54,7 +53,6 @@ func (a *Ab) Start() error {
 			if guard < l && l > 0 {
 				guard = l
 				str := string(out)[idr:]
-				log.Printf("[%s]\n", str)
 
 				if strings.Contains(str, a.Input[probe]) {
 					idr += strings.Index(str, a.Input[probe])
