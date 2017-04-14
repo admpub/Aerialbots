@@ -1,15 +1,19 @@
 package Aerialbots
 
 import (
+	"errors"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
-	"time"
+	"strings"
+
+	"github.com/kr/pty"
 )
 
 const (
-	PIPE = "/tmp/stdout"
+	PIOUT = "/tmp/stdout"
 )
 
 // Ab 用来判断Command执行后的stdout是否包含Input中所定义的字符串
@@ -23,32 +27,55 @@ type Ab struct {
 
 // Start 执行过滤，Ab会判断Stdout是否包含需要过滤的字符
 func (a *Ab) Start() error {
-	stop := make(chan int)
-	out, err := os.Create(PIPE)
+
+	FOUT, err := os.Create(PIOUT)
 	if err != nil {
 		return err
 	}
 
-	a.Cmd.Stdout = out
-	a.Cmd.Stdin = os.Stdin
-	if err := a.Cmd.Start(); err != nil {
+	defer func() {
+		FOUT.Close()
+	}()
+
+	f, err := pty.Start(a.Cmd)
+	if err != nil {
 		return err
 	}
-
+	var out []byte
 	go func() {
-		c := time.Tick(500 * time.Millisecond)
+		probe := 0
+		idr := 0
+		guard := 0 //guard哨兵用于判断当前命令是否发生变化
+
 		for {
-			select {
-			case <-c:
-				info, _ := ioutil.ReadFile(PIPE)
-				log.Printf("OUT:[%s]/n", string(info))
-			case <-stop:
+			out, _ = ioutil.ReadFile(FOUT.Name())
+			l := len(strings.TrimSpace(string(out)))
+
+			if guard < l && l > 0 {
+				guard = l
+				str := string(out)[idr:]
+				log.Printf("[%s]\n", str)
+
+				if strings.Contains(str, a.Input[probe]) {
+					idr += strings.Index(str, a.Input[probe])
+					in := []byte(a.Ouput[probe] + "\n")
+					f.Write(in)
+					guard += len(in)
+					probe++
+				}
+			}
+			if probe == len(a.Input) {
+				f.Write([]byte{4})
 				return
 			}
 		}
 	}()
+	io.Copy(FOUT, f)
 
-	a.Cmd.Wait()
-	stop <- 1
+	err = a.Cmd.Wait()
+	if err != nil {
+		return errors.New(err.Error() + "\n log:\n" + string(out))
+	}
+
 	return nil
 }
