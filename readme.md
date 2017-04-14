@@ -10,26 +10,26 @@ Aerialbots 主要用在exec.Command场景中。 传统的exec.Command在执行co
 
 下面实例假设,用户在代码中需要通过ssh登录到另外一个节点中，执行一些预定操作。虽然golang也有SSH package可以完成这个User Case。 但这里仅仅是为了演示如何通过Aerialbots完成这个Case。
 ```
-    cmd := exec.Command("ssh", "xxxx@10.10.1.1")
+	cmd := exec.Command("ssh", "xxxx@10.10.1.1")
 	ab := new(Aerialbots.Ab)
 	ab.Cmd = cmd
 
 	input := make(map[int]string)
 	output := make(map[int]string)
 
-    //假设执行ssh xxxx@10.10.1.1后，返回如下字符:
-    //admin@10.10.1.1's password:
-    //所以我们设定当返回的字符中包含password后，输入admin
-    input[0] = "password" 
-    output[0] = "admin"
+	//假设执行ssh xxxx@10.10.1.1后，返回如下字符:
+	//admin@10.10.1.1's password:
+	//所以我们设定当返回的字符中包含password后，输入admin
+	input[0] = "password" 
+	output[0] = "admin"
 
-    //当执行ssh登录成功后,对方节点返回的信息如下：
-    //Debian GNU/Linux comes with ABSOLUTELY NO WARRANTY, to the extent
-    //permitted by applicable law.
-    //Last login: Fri Apr 14 11:49:45 2017 from 10.11.1.113
-    //admin@server:~$
-    //因此我们设定当返回的字符中包含server时，留一个"到此一游"的标记
-	input[1] = "ansible-server"
+	//当执行ssh登录成功后,对方节点返回的信息如下：
+	//Debian GNU/Linux comes with ABSOLUTELY NO WARRANTY, to the extent
+	//permitted by applicable law.
+	//Last login: Fri Apr 14 11:49:45 2017 from 10.11.1.113
+	//admin@server:~$
+	//因此我们设定当返回的字符中包含server时，留一个"到此一游"的标记
+	input[1] = "server"
 	output[1] = "echo \"have visited this place\" >/tmp/1.log"
 
     
