@@ -7,14 +7,16 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 
 	"github.com/kr/pty"
 )
 
 const (
-	PIOUT      = "/tmp/stdout"
-	SWITCHPATH = "SWITCH_PATH"
+	PIOUT       = "/tmp/stdout"
+	SWITCHPATH  = "SWITCH_PATH"
+	SCENEDESIGN = "SCENE_DESIGN"
 )
 
 // Ab 用来判断Command执行后的stdout是否包含Input中所定义的字符串
@@ -57,7 +59,8 @@ func (a *Ab) Start() error {
 				guard = l
 				str := string(out)[idr:]
 
-				if strings.Contains(str, a.Input[probe]) {
+				if canExecute(a, probe, f, str) {
+					// if strings.Contains(str, a.Input[probe]) {
 					// execute assist frist
 					err := assist(a, probe, f)
 					if err != nil {
@@ -105,4 +108,42 @@ func assist(a *Ab, probe int, pty *os.File) error {
 	}
 
 	return nil
+}
+
+// canExecute 判断当前是否满足执行条件, 各条件间为或关系
+// 条件1: 当前pty中包括Input指定锚点
+// 条件2: 当前pty中满足Assist的条件判断
+func canExecute(a *Ab, probe int, pty *os.File, str string) bool {
+	if len(a.Assist[probe]) > 0 {
+		for _, ap := range a.Assist[probe] {
+			if strings.Contains(strings.ToUpper(ap), SCENEDESIGN) {
+				as := strings.Split(ap, "=")
+				if len(as) != 3 {
+					return false
+				}
+				if strings.Contains(str, as[1]) {
+					cmd := ""
+					if strings.HasPrefix(as[2], "SEP") {
+						idx, err := strconv.Atoi(as[2][3:])
+						if err != nil {
+							fmt.Printf("%s format error\n", as[2])
+							return false
+						}
+						cmd = a.Ouput[idx]
+					} else {
+						cmd = as[2]
+					}
+					in := []byte(cmd + "\n")
+					pty.Write(in)
+					return true
+				}
+			}
+		}
+	}
+
+	if strings.Contains(str, a.Input[probe]) {
+		return true
+	}
+
+	return false
 }

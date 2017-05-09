@@ -6,6 +6,11 @@ Aerialbots 是一个可以在交互式Shell中输入自定义数据的golang pac
 
 Aerialbots 主要用在exec.Command场景中。 传统的exec.Command在执行command时，受制于pty无法与Child Process进行交互时输入。 通过Aerialbots，用户可以在exec.Command过程中创建command运行时的pty，通过匹配用户预定义的字符串，在pty中输入相对应的字符，借此达到自动化的目的。
 
+## 辅助命令
+
+- SWITCH_PATH 切换工作目录
+- SCENE_DESIGN 场景判断
+
 ## Demo
 
 下面实例假设,用户在代码中需要通过ssh登录到另外一个节点中，执行一些预定操作。虽然golang也有SSH package可以完成这个User Case。 但这里仅仅是为了演示如何通过Aerialbots完成这个Case。
@@ -41,3 +46,8 @@ Aerialbots 主要用在exec.Command场景中。 传统的exec.Command在执行co
 		fmt.Println("ERROR", err.Error())
 	}
 ```
+
+## 辅助命令Demo
+- SWITCH_PATH=/tmp
+- SCENE_DESIGN=password=SEP3 #当返回password时输入第三步的Output
+- SCENE_DESIGN=password=exit #当返回password时输入exit
