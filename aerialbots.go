@@ -14,7 +14,7 @@ import (
 
 const (
 	PIOUT      = "/tmp/stdout"
-	SWITCHPATH = "switch_path"
+	SWITCHPATH = "SWITCH_PATH"
 )
 
 // Ab 用来判断Command执行后的stdout是否包含Input中所定义的字符串
@@ -59,7 +59,7 @@ func (a *Ab) Start() error {
 
 				if strings.Contains(str, a.Input[probe]) {
 					// execute assist frist
-					err := assist(probe, a)
+					err := assist(a, probe, f)
 					if err != nil {
 						fmt.Println(err.Error())
 					}
@@ -87,16 +87,19 @@ func (a *Ab) Start() error {
 }
 
 // assist 判断指定Probe是否存在辅助命令，如果有则首先执行辅助命令
-func assist(probe int, a *Ab) error {
+func assist(a *Ab, probe int, pty *os.File) error {
+
 	if len(a.Assist[probe]) > 0 {
 		for _, a := range a.Assist[probe] {
 			as := strings.Split(a, "=")
 			if len(as) < 2 {
 				return errors.New("Wrong Assis format")
 			}
-			switch as[0] {
+			switch strings.ToUpper(as[0]) {
 			case SWITCHPATH:
-				return os.Chdir(as[1])
+				in := []byte("cd " + as[1] + "\n")
+				_, err := pty.Write(in)
+				return err
 			}
 		}
 	}
