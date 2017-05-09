@@ -14,8 +14,11 @@ import (
 )
 
 const (
-	PIOUT       = "/tmp/stdout"
-	SWITCHPATH  = "SWITCH_PATH"
+	// PIOUT 执行日志保存位置
+	PIOUT = "/tmp/stdout"
+	// SWITCHPATH 切换工作目录
+	SWITCHPATH = "SWITCH_PATH"
+	// SCENEDESIGN 定制场景
 	SCENEDESIGN = "SCENE_DESIGN"
 )
 
