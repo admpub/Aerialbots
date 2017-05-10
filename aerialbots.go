@@ -30,6 +30,7 @@ type Ab struct {
 	Ouput  map[int]string   `json:"output"` // Output 欲交互的字符串,key为出现顺序与Input的key相对应, value为交互字符串
 	Assist map[int][]string `json:"assist"` // Assist 辅助命令集，在输入Output之前会匹配是否有合适的Assist，如果有，则会首先执行Assist的命令
 	Cmd    *exec.Cmd        // Cmd 封装好的Cmd指针
+	debug  bool
 }
 
 // Start 执行过滤，Ab会判断Stdout是否包含需要过滤的字符
@@ -49,9 +50,11 @@ func (a *Ab) Start() error {
 		return err
 	}
 	var out []byte
+
+	// disable colour in pty
 	go func() {
 		probe := 0
-		idr := 0
+		// idr := 0
 		guard := 0 //guard哨兵用于判断当前命令是否发生变化
 
 		for {
@@ -59,9 +62,8 @@ func (a *Ab) Start() error {
 			l := len(strings.TrimSpace(string(out)))
 
 			if guard < l && l > 0 {
+				str := string(out)[guard:l]
 				guard = l
-				str := string(out)[idr:]
-
 				if canExecute(a, probe, f, str) {
 					// if strings.Contains(str, a.Input[probe]) {
 					// execute assist frist
@@ -69,9 +71,9 @@ func (a *Ab) Start() error {
 					if err != nil {
 						fmt.Println(err.Error())
 					}
-					idr += strings.Index(str, a.Input[probe])
 					in := []byte(a.Ouput[probe] + "\n")
 					f.Write(in)
+					ensureCMD(a.Ouput[probe])
 					guard += len(in)
 					probe++
 				}
@@ -105,6 +107,8 @@ func assist(a *Ab, probe int, pty *os.File) error {
 			case SWITCHPATH:
 				in := []byte("cd " + as[1] + "\n")
 				_, err := pty.Write(in)
+				pty.Write([]byte{5})
+				ensureSWITCH(as[1])
 				return err
 			}
 		}
@@ -117,6 +121,14 @@ func assist(a *Ab, probe int, pty *os.File) error {
 // 条件1: 当前pty中包括Input指定锚点
 // 条件2: 当前pty中满足Assist的条件判断
 func canExecute(a *Ab, probe int, pty *os.File, str string) bool {
+	str = strings.TrimSpace(str)
+	if a.debug {
+		fmt.Printf("compare [%s] [%s] [%v] [%d] [%d] [%v]\n", str, a.Input[probe], strings.Contains(str, a.Input[probe]), len(str), len(a.Input[probe]), []byte(str))
+	}
+
+	if len(str) == 0 {
+		return false
+	}
 	if len(a.Assist[probe]) > 0 {
 		for _, ap := range a.Assist[probe] {
 			if strings.Contains(strings.ToUpper(ap), SCENEDESIGN) {
@@ -149,4 +161,12 @@ func canExecute(a *Ab, probe int, pty *os.File, str string) bool {
 	}
 
 	return false
+}
+
+func ensureCMD(str string) {
+	fmt.Printf("开始执行:[%s]\n", str)
+}
+
+func ensureSWITCH(str string) {
+	fmt.Printf("开始切换路径:[%s]\n", str)
 }
