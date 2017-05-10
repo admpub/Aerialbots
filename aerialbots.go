@@ -33,6 +33,10 @@ type Ab struct {
 	debug  bool
 }
 
+func (a *Ab) EnableDebug() {
+	a.debug = true
+}
+
 // Start 执行过滤，Ab会判断Stdout是否包含需要过滤的字符
 func (a *Ab) Start() error {
 
